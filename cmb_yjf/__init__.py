@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 """
-    __init__.py
-    ~~~~~~~~~~
+    招商银行云缴费
 """
 import json
 import pyDes
@@ -224,20 +223,11 @@ class BaseAliPay:
         # 排序后的字符串
         ordered_items = self._ordered_data(data)
         raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
-        sign = self._sign(raw_string)
-        unquoted_items = ordered_items + [('sign', sign)]
-
-        # 获得最终的订单信息字符串
-        signed_string = "&".join("{}={}".format(k, quote_plus(v)) for k, v in unquoted_items)
-        return signed_string
+        return self._sign(raw_string)
 
 
 
     def verify(self, data, signature):
-        if "sign_type" in data:
-            sign_type = data.pop("sign_type")
-            if sign_type != self._sign_type:
-                raise AliPayException(None, "Unknown sign type: {}".format(sign_type))
         # 排序后的字符串
         unsigned_items = self._ordered_data(data)
         message = "&".join(u"{}={}".format(k, v) for k, v in unsigned_items)

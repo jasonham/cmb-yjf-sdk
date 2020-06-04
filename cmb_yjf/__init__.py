@@ -199,11 +199,25 @@ class BaseAliPay:
 
     def build_body(self, data):
         body = {
-            'Val': self._des_encode(data),
-            'Sign': self._sign(data),
-            'Id': self.merch_id
+            'Val': self.des_encode_data(data),
+            'Sign': self.sign_data(data)
         }
+        merch_id = data.get('merch_id', False)
+        if merch_id and merch_id == self.merch_id:
+            body.update({
+                'Id': self.merch_id
+            })
+        else:
+            message = "商户参数（Id）不符，merch_id：{}！={}".format(merch_id, self.merch_id)
+            raise CMBYJFException(None, message)
+
         return body
+
+    def des_encode_data(self, data):
+        ordered_items = self._ordered_data(data)
+        raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
+        encode = self._des_encode(raw_string)
+        return encode
 
     def sign_data(self, data):
         data.pop("sign", None)

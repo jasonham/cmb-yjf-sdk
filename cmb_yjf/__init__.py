@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 # coding: utf-8
+
+"""
+    __init__.py
+    ~~~~~~~~~~
+"""
 """
     招商银行云缴费
 """
@@ -10,7 +15,6 @@ from datetime import datetime
 from functools import partial
 
 import hashlib
-import OpenSSL
 from Cryptodome.Hash import SHA, SHA256
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Signature import PKCS1_v1_5
@@ -18,42 +22,34 @@ from Cryptodome.Signature import PKCS1_v1_5
 from .exceptions import CMBYJFException
 
 
-# 常见加密算法
-CryptoAlgSet = (
-    b'rsaEncryption',
-    b'md2WithRSAEncryption',
-    b'md5WithRSAEncryption',
-    b'sha1WithRSAEncryption',
-    b'sha256WithRSAEncryption',
-    b'sha384WithRSAEncryption',
-    b'sha512WithRSAEncryption'
-)
-
-
-class BaseAliPay:
+class CmbYjfBasePay:
+    # @property
+    # def opr_usr(self):
+    #     """用户ID"""
+    #     return self._opr_usr
+    #
+    # @property
+    # def merch_id(self):
+    #     """商户编号"""
+    #     return self._merch_id
+    #
+    # @property
+    # def sign_type(self):
+    #     return self._sign_type
+    #
+    # @property
+    # def app_private_key(self):
+    #     """签名用"""
+    #     return self._app_private_key
+    #
+    # @property
+    # def cmb_public_key(self):
+    #     """验证签名用"""
+    #     return self._cmb_public_key
     @property
-    def opr_usr(self):
-        """用户ID"""
-        return self._opr_usr
-
-    @property
-    def merch_id(self):
-        """商户编号"""
-        return self._merch_id
-
-    @property
-    def sign_type(self):
-        return self._sign_type
-
-    @property
-    def app_private_key(self):
-        """签名用"""
-        return self._app_private_key
-
-    @property
-    def cmb_public_key(self):
-        """验证签名用"""
-        return self._cmb_public_key
+    def depart(self):
+        """学校编号"""
+        return self._depart
 
     @property
     def des_key(self):
@@ -62,10 +58,11 @@ class BaseAliPay:
 
     def __init__(
             self,
-            opr_usr,
-            merch_id,
-            app_private_key_string=None,
-            cmb_public_key_string=None,
+            # opr_usr,
+            # merch_id,
+            # app_private_key_string=None,
+            # cmb_public_key_string=None,
+            depart=None,
             des_key=None,
             debug=False
     ):
@@ -73,10 +70,11 @@ class BaseAliPay:
         初始化:
 
         """
-        self._opr_usr = str(opr_usr)
-        self._merch_id = str(merch_id)
-        self._app_private_key_string = app_private_key_string
-        self._cmb_public_key_string = cmb_public_key_string
+        # self._opr_usr = str(opr_usr)
+        # self._merch_id = str(merch_id)
+        # self._app_private_key_string = app_private_key_string
+        # self._cmb_public_key_string = cmb_public_key_string
+        self._depart = str(depart)
         self._des_key_string = des_key
 
         self._app_private_key = None
@@ -92,16 +90,16 @@ class BaseAliPay:
         self._load_key()
 
     def _load_key(self):
-        # load private key
-        content = self._app_private_key_string
-        self._app_private_key = RSA.importKey(content)
-
-        # load public key
-        content = self._alipay_public_key_string
-        self._cmb_public_key = RSA.importKey(content)
+        # # load private key
+        # content = self._app_private_key_string
+        # self._app_private_key = RSA.importKey(content)
+        #
+        # # load public key
+        # content = self._alipay_public_key_string
+        # self._cmb_public_key = RSA.importKey(content)
 
         # load Des key
-        content = self._des_key
+        content = self._des_key_string
         self._des_key = content
 
     def _des_encode(self, plaintext):
@@ -134,7 +132,7 @@ class BaseAliPay:
     #         # base64 编码，转换为unicode表示并移除回车
     #         sign = base64.encodebytes(signature).decode().replace("\n", "")
     #     方法3
-    #         echo "abc" | openssl sha1 -sign alipay.key | openssl base64
+    #         echo "abc" | openssl sha1 -sign cmbpay.key | openssl base64
     #     """
     #     # 开始计算签名
     #     key = self.app_private_key
@@ -144,31 +142,31 @@ class BaseAliPay:
     #     sign = encodebytes(signature).decode().replace("\n", "")
     #     return sign
 
-    def _sign(self, unsigned_string):
-        # 开始计算签名  加签
-        hsobj = hashlib.sha256()
-        hsobj.update(unsigned_string.encode("utf-8"))
-        data = hsobj.hexdigest()
-        key = self.app_private_key
-        signer = PKCS1_v1_5.new(key)
-        signature = signer.sign(SHA256.new(data.encode()))
-        sign = base64.b64encode(signature)
-        return sign
-
-    def _verify(self, raw_content, signature):
-        # 开始计算签名  验签
-        key = self.alipay_public_key
-        signer = PKCS1_v1_5.new(key)
-        digest = SHA256.new()
-        digest.update(raw_content.encode())
-        return bool(signer.verify(digest, base64.b64decode(signature)))
-
-    def _ordered_data(self, data):
-        for k, v in data.items():
-            if isinstance(v, dict):
-                # 将字典类型的数据dump出来
-                data[k] = json.dumps(v, separators=(',', ':'))
-        return sorted(data.items())
+    # def _sign(self, unsigned_string):
+    #     # 开始计算签名  加签
+    #     hsobj = hashlib.sha256()
+    #     hsobj.update(unsigned_string.encode("utf-8"))
+    #     data = hsobj.hexdigest()
+    #     key = self.app_private_key
+    #     signer = PKCS1_v1_5.new(key)
+    #     signature = signer.sign(SHA256.new(data.encode()))
+    #     sign = base64.b64encode(signature)
+    #     return sign
+    #
+    # def _verify(self, raw_content, signature):
+    #     # 开始计算签名  验签
+    #     key = self.alipay_public_key
+    #     signer = PKCS1_v1_5.new(key)
+    #     digest = SHA256.new()
+    #     digest.update(raw_content.encode())
+    #     return bool(signer.verify(digest, base64.b64decode(signature)))
+    #
+    # def _ordered_data(self, data):
+    #     for k, v in data.items():
+    #         if isinstance(v, dict):
+    #             # 将字典类型的数据dump出来
+    #             data[k] = json.dumps(v, separators=(',', ':'))
+    #     return sorted(data.items())
 
     # def build_body(
     #     self, method, biz_content, return_url=None, notify_url=None, append_auth_token=False
@@ -189,8 +187,8 @@ class BaseAliPay:
     #         data["return_url"] = return_url
     #
     #     if method in (
-    #         "alipay.trade.app.pay", "alipay.trade.wap.pay", "alipay.trade.page.pay",
-    #         "alipay.trade.pay", "alipay.trade.precreate"
+    #         "cmbpay.trade.app.pay", "cmbpay.trade.wap.pay", "cmbpay.trade.page.pay",
+    #         "cmbpay.trade.pay", "cmbpay.trade.precreate"
     #     ) and (notify_url or self._app_notify_url):
     #         data["notify_url"] = notify_url or self._app_notify_url
     #
@@ -198,44 +196,51 @@ class BaseAliPay:
 
     def build_body(self, data):
         body = {
-            'Val': self.des_encode_data(data),
-            'Sign': self.sign_data(data)
+            'Data': self.des_encode_data(data),
+            'Md5': self.md5_32bit_lower_case(self.des_encode_data(data)),
+            'depart': self.depart
         }
-        merch_id = data.get('merch_id', False)
-        if merch_id and merch_id == self.merch_id:
-            body.update({
-                'Id': self.merch_id
-            })
-        else:
-            message = "商户参数（Id）不符，merch_id：{}！={}".format(merch_id, self.merch_id)
-            raise CMBYJFException(None, message)
+        # merch_id = data.get('merch_id', False)
+        # if merch_id and merch_id == self.merch_id:
+        #     body.update({
+        #         'Id': self.merch_id
+        #     })
+        # else:
+        #     message = "商户参数（Id）不符，merch_id：{}！={}".format(merch_id, self.merch_id)
+        #     raise CMBYJFException(None, message)
 
         return body
 
     def des_encode_data(self, data):
-        ordered_items = self._ordered_data(data)
-        raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
+        # ordered_items = self._ordered_data(data)
+        # raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
+        # encode = self._des_encode(raw_string)
+        raw_string = json.dumps(data, ensure_ascii=False)
+        print(raw_string)
         encode = self._des_encode(raw_string)
         return encode
 
-    def sign_data(self, data):
-        data.pop("sign", None)
-        # 排序后的字符串
-        ordered_items = self._ordered_data(data)
-        raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
-        return self._sign(raw_string)
+    # def sign_data(self, data):
+    #     data.pop("sign", None)
+    #     # 排序后的字符串
+    #     ordered_items = self._ordered_data(data)
+    #     raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
+    #     return self._sign(raw_string)
 
+    def md5_32bit_lower_case(self, data):
+        m = hashlib.md5()
+        m.update(data)
+        return m.hexdigest()
 
-
-    def verify(self, data, signature):
-        # 排序后的字符串
-        unsigned_items = self._ordered_data(data)
-        message = "&".join(u"{}={}".format(k, v) for k, v in unsigned_items)
-        return self._verify(message, signature)
+    # def verify(self, data, signature):
+    #     # 排序后的字符串
+    #     unsigned_items = self._ordered_data(data)
+    #     message = "&".join(u"{}={}".format(k, v) for k, v in unsigned_items)
+    #     return self._verify(message, signature)
 
     def api(self, api_name, **kwargs):
         """
-        alipay.api("alipay.trade.page.pay", **kwargs) ==> alipay.api_alipay_trade_page_pay(**kwargs)
+        cmbpay.api("cmbpay.trade.page.pay", **kwargs) ==> cmbpay.api_alipay_trade_page_pay(**kwargs)
         """
         api_name = api_name.replace(".", "_")
         key = "api_" + api_name
@@ -255,7 +260,7 @@ class BaseAliPay:
         }
         biz_content.update(kwargs)
         data = self.build_body(
-            "alipay.trade.wap.pay",
+            "cmbpay.trade.wap.pay",
             biz_content,
             return_url=return_url,
             notify_url=notify_url
@@ -272,7 +277,7 @@ class BaseAliPay:
             "product_code": "QUICK_MSECURITY_PAY"
         }
         biz_content.update(kwargs)
-        data = self.build_body("alipay.trade.app.pay", biz_content, notify_url=notify_url)
+        data = self.build_body("cmbpay.trade.app.pay", biz_content, notify_url=notify_url)
         return self.sign_data(data)
 
     def api_alipay_trade_page_pay(self, subject, out_trade_no, total_amount,
@@ -286,7 +291,7 @@ class BaseAliPay:
 
         biz_content.update(kwargs)
         data = self.build_body(
-            "alipay.trade.page.pay",
+            "cmbpay.trade.page.pay",
             biz_content,
             return_url=return_url,
             notify_url=notify_url
@@ -329,7 +334,7 @@ class BaseAliPay:
             biz_content["out_trade_no"] = out_trade_no
         if trade_no:
             biz_content["trade_no"] = trade_no
-        data = self.build_body("alipay.trade.query", biz_content)
+        data = self.build_body("cmbpay.trade.query", biz_content)
         response_type = "alipay_trade_query_response"
         return self.verified_sync_response(data, response_type)
 
@@ -394,7 +399,7 @@ class BaseAliPay:
             "subject": subject
         }
         biz_content.update(**kwargs)
-        data = self.build_body("alipay.trade.pay", biz_content, notify_url=notify_url)
+        data = self.build_body("cmbpay.trade.pay", biz_content, notify_url=notify_url)
         response_type = "alipay_trade_pay_response"
         return self.verified_sync_response(data, response_type)
 
@@ -408,7 +413,7 @@ class BaseAliPay:
         if trade_no:
             biz_content["trade_no"] = trade_no
 
-        data = self.build_body("alipay.trade.refund", biz_content)
+        data = self.build_body("cmbpay.trade.refund", biz_content)
         response_type = "alipay_trade_refund_response"
         return self.verified_sync_response(data, response_type)
 
@@ -433,7 +438,7 @@ class BaseAliPay:
         if trade_no:
             biz_content["trade_no"] = trade_no
 
-        data = self.build_body("alipay.trade.cancel", biz_content)
+        data = self.build_body("cmbpay.trade.cancel", biz_content)
         response_type = "alipay_trade_cancel_response"
         return self.verified_sync_response(data, response_type)
 
@@ -460,7 +465,7 @@ class BaseAliPay:
         if operator_id:
             biz_content["operator_id"] = operator_id
 
-        data = self.build_body("alipay.trade.close", biz_content)
+        data = self.build_body("cmbpay.trade.close", biz_content)
         response_type = "alipay_trade_close_response"
         return self.verified_sync_response(data, response_type)
 
@@ -471,7 +476,7 @@ class BaseAliPay:
             "msg": "Success",
             "out_trade_no": "out_trade_no17",
             "code": "10000",
-            "qr_code": "https://qr.alipay.com/bax03431ljhokirwl38f00a7"
+            "qr_code": "https://qr.cmbpay.com/bax03431ljhokirwl38f00a7"
           },
           "sign": ""
         }
@@ -491,7 +496,7 @@ class BaseAliPay:
             "subject": subject
         }
         biz_content.update(**kwargs)
-        data = self.build_body("alipay.trade.precreate", biz_content, notify_url=notify_url)
+        data = self.build_body("cmbpay.trade.precreate", biz_content, notify_url=notify_url)
         response_type = "alipay_trade_precreate_response"
         return self.verified_sync_response(data, response_type)
 
@@ -507,7 +512,7 @@ class BaseAliPay:
         else:
             biz_content["out_trade_no"] = out_trade_no
 
-        data = self.build_body("alipay.trade.fastpay.refund.query", biz_content)
+        data = self.build_body("cmbpay.trade.fastpay.refund.query", biz_content)
         response_type = "alipay_trade_fastpay_refund_query_response"
         return self.verified_sync_response(data, response_type)
 
@@ -522,7 +527,7 @@ class BaseAliPay:
             "amount": amount
         }
         biz_content.update(kwargs)
-        data = self.build_body("alipay.fund.trans.toaccount.transfer", biz_content)
+        data = self.build_body("cmbpay.fund.trans.toaccount.transfer", biz_content)
         response_type = "alipay_fund_trans_toaccount_transfer_response"
         return self.verified_sync_response(data, response_type)
 
@@ -536,7 +541,7 @@ class BaseAliPay:
         if order_id:
             biz_content["order_id"] = order_id
 
-        data = self.build_body("alipay.fund.trans.order.query", biz_content)
+        data = self.build_body("cmbpay.fund.trans.order.query", biz_content)
         response_type = "alipay_fund_trans_order_query_response"
         return self.verified_sync_response(data, response_type)
 
@@ -553,7 +558,7 @@ class BaseAliPay:
             "royalty_parameters": royalty_parameters,
         }
         biz_content.update(kwargs)
-        data = self.build_body("alipay.trade.order.settle", biz_content)
+        data = self.build_body("cmbpay.trade.order.settle", biz_content)
         response_type = "alipay_trade_order_settle_response"
         return self.verified_sync_response(data, response_type)
 
@@ -576,7 +581,7 @@ class BaseAliPay:
         # raise exceptions
         if "sign" not in response.keys():
             result = response[response_type]
-            raise AliPayException(
+            raise CMBYJFException(
                 code=result.get("code", "0"),
                 message=raw_string
             )
@@ -587,17 +592,18 @@ class BaseAliPay:
         plain_content = self._get_string_to_be_signed(raw_string, response_type)
 
         if not self._verify(plain_content, sign):
-            raise AliPayValidationError
+            raise CMBYJFException
         return json.loads(plain_content)
 
     def verified_sync_response(self, data, response_type):
         url = self._gateway + "?" + self.sign_data(data)
-        raw_string = urlopen(url, timeout=15).read().decode()
+        # raw_string = urlopen(url, timeout=15).read().decode()
+        raw_string = ''
         return self._verify_and_return_sync_response(raw_string, response_type)
 
     def _get_string_to_be_signed(self, raw_string, response_type):
         """
-        https://docs.open.alipay.com/200/106120
+        https://docs.open.cmbpay.com/200/106120
         从同步返回的接口里面找到待签名的字符串
         """
         balance = 0
@@ -615,206 +621,5 @@ class BaseAliPay:
         return raw_string[start:end]
 
 
-class AliPay(BaseAliPay):
+class CmbYjfPay(CmbYjfBasePay):
     pass
-
-
-class DCAliPay(BaseAliPay):
-    """
-    数字证书 (digital certificate) 版本
-    """
-
-    def __init__(
-        self,
-        appid,
-        app_notify_url,
-        app_private_key_string,
-        app_public_key_cert_string,
-        alipay_public_key_cert_string,
-        alipay_root_cert_string,
-        sign_type="RSA2",
-        debug=False
-    ):
-        """
-        初始化
-        DCAlipay(
-            appid='',
-            app_notify_url='http://example.com',
-            app_private_key_string='',
-            app_public_key_cert_string='',
-            alipay_public_key_cert_sring='',
-            aplipay_root_cert_string='',
-        )
-        """
-        self._app_public_key_cert_string = app_public_key_cert_string
-        self._alipay_public_key_cert_string = alipay_public_key_cert_string
-        self._alipay_root_cert_string = alipay_root_cert_string
-        alipay_public_key_string = self.load_alipay_public_key_string()
-        super().__init__(
-            appid=appid,
-            app_notify_url=app_notify_url,
-            app_private_key_string=app_private_key_string,
-            alipay_public_key_string=alipay_public_key_string,
-            sign_type=sign_type,
-            debug=debug
-        )
-
-    def api_alipay_open_app_alipaycert_download(self, alipay_cert_sn):
-        """
-        下载支付宝证书
-        验签使用，支付宝公钥证书无感知升级机制
-        """
-        biz_content = {
-            "alipay_cert_sn": alipay_cert_sn
-        }
-        data = self.build_body("alipay.open.app.alipaycert.download", biz_content)
-        return self.sign_data(data)
-
-    def build_body(self, *args, **kwargs):
-        data = super().build_body(*args, **kwargs)
-        data["app_cert_sn"] = self.app_cert_sn
-        data["alipay_root_cert_sn"] = self.alipay_root_cert_sn
-        return data
-
-    def load_alipay_public_key_string(self):
-        cert = OpenSSL.crypto.load_certificate(
-            OpenSSL.crypto.FILETYPE_PEM, self._alipay_public_key_cert_string
-        )
-        return OpenSSL.crypto.dump_publickey(
-            OpenSSL.crypto.FILETYPE_PEM, cert.get_pubkey()
-        ).decode("utf-8")
-
-    @staticmethod
-    def get_cert_sn(cert):
-        """
-        获取证书 SN 算法
-        """
-        cert = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_PEM, cert)
-        certIssue = cert.get_issuer()
-        name = 'CN={},OU={},O={},C={}'.format(certIssue.CN, certIssue.OU, certIssue.O, certIssue.C)
-        string = name + str(cert.get_serial_number())
-        return hashlib.md5(string.encode()).hexdigest()
-
-    @staticmethod
-    def read_pem_cert_chain(certContent):
-        """解析根证书"""
-        # 根证书中，每个 cert 中间有两个回车间隔
-        items = [i for i in certContent.split('\n\n') if i]
-        load_cert = partial(OpenSSL.crypto.load_certificate, OpenSSL.crypto.FILETYPE_PEM)
-        return [load_cert(c) for c in items]
-
-    @staticmethod
-    def get_root_cert_sn(rootCert):
-        """ 根证书 SN 算法"""
-        certs = DCAliPay.read_pem_cert_chain(rootCert)
-        rootCertSN = None
-        for cert in certs:
-            try:
-                sigAlg = cert.get_signature_algorithm()
-            except ValueError:
-                continue
-            if sigAlg in CryptoAlgSet:
-                certIssue = cert.get_issuer()
-                name = 'CN={},OU={},O={},C={}'.format(
-                    certIssue.CN, certIssue.OU, certIssue.O, certIssue.C
-                )
-                string = name + str(cert.get_serial_number())
-                certSN = hashlib.md5(string.encode()).hexdigest()
-                if not rootCertSN:
-                    rootCertSN = certSN
-                else:
-                    rootCertSN = rootCertSN + '_' + certSN
-        return rootCertSN
-
-    @property
-    def app_cert_sn(self):
-        if not hasattr(self, "_app_cert_sn"):
-            self._app_cert_sn = self.get_cert_sn(self._app_public_key_cert_string)
-        return getattr(self, "_app_cert_sn")
-
-    @property
-    def alipay_root_cert_sn(self):
-        if not hasattr(self, "_alipay_root_cert_sn"):
-            self._alipay_root_cert_sn = self.get_root_cert_sn(self._alipay_root_cert_string)
-        return getattr(self, "_alipay_root_cert_sn")
-
-
-class ISVAliPay(BaseAliPay):
-
-    def __init__(
-        self,
-        appid,
-        app_notify_url,
-        app_private_key_string=None,
-        alipay_public_key_string=None,
-        sign_type="RSA2",
-        debug=False,
-        app_auth_token=None,
-        app_auth_code=None
-    ):
-        if not app_auth_token and not app_auth_code:
-            raise Exception("Both app_auth_code and app_auth_token are None !!!")
-
-        self._app_auth_token = app_auth_token
-        self._app_auth_code = app_auth_code
-        super().__init__(
-            appid,
-            app_notify_url,
-            app_private_key_string=app_private_key_string,
-            alipay_public_key_string=alipay_public_key_string,
-            sign_type=sign_type,
-            debug=debug
-        )
-
-    @property
-    def app_auth_token(self):
-        # 没有则换取token
-        if not self._app_auth_token:
-            result = self.api_alipay_open_auth_token_app(self._app_auth_code)
-            self._app_auth_token = result.get("app_auth_token")
-            if not self._app_auth_token:
-                msg = "Get auth token by auth code failed: {}"
-                raise Exception(msg.format(self._app_auth_code))
-        return self._app_auth_token
-
-    def api_alipay_open_auth_token_app(self, refresh_token=None):
-        """
-        response = {
-          "code": "10000",
-          "msg": "Success",
-          "app_auth_token": "201708BB28623ce3d10f4f62875e9ef5cbeebX07",
-          "app_refresh_token": "201708BB108a270d8bb6409890d16175a04a7X07",
-          "auth_app_id": "appid",
-          "expires_in": 31536000,
-          "re_expires_in": 32140800,
-          "user_id": "2088xxxxx
-        }
-        """
-
-        if refresh_token:
-            biz_content = {
-                "grant_type": "refresh_token",
-                "refresh_token": refresh_token
-            }
-        else:
-            biz_content = {
-                "grant_type": "authorization_code",
-                "code": self._app_auth_code
-            }
-        data = self.build_body(
-            "alipay.open.auth.token.app",
-            biz_content,
-            append_auth_token=False
-        )
-        response_type = "alipay_open_auth_token_app_response"
-        return self.verified_sync_response(data, response_type)
-
-    def api_alipay_open_auth_token_app_query(self):
-        biz_content = {"app_auth_token": self.app_auth_token}
-        data = self.build_body(
-            "alipay.open.auth.token.app.query",
-            biz_content,
-            append_auth_token=False
-        )
-        response_type = "alipay_open_auth_token_app_query_response"
-        return self.verified_sync_response(data, response_type)

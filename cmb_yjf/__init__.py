@@ -230,6 +230,11 @@ class CmbYjfBasePay:
         encode = self._des_encode(raw_string)
         return encode
 
+    def des_decode_date(self, data):
+        decode_string = self._des_decode(data)
+        decode = json.loads(decode_string)
+        return decode
+
     # def sign_data(self, data):
     #     data.pop("sign", None)
     #     # 排序后的字符串

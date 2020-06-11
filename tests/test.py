@@ -20,7 +20,14 @@ class CmbYjfPayTestCase(unittest.TestCase):
         self.DES_result = "TJ91AmUS6VeYQXPBCHkG4RYhXNBl2gttcj7GVJhm9HKYQXPBCHkG4Uotc+0tEceuOfAURBwCdN8wLs8uAZMSTk49seSCvfT4mLgyE8TMdQYMWFpjAfOmqmiZAcJTY31cDuROqZ3U8b32xBcY3X8n0qWt3aiElavJH2weWlChuB6RqsuJ/hu6IszPLS2fjlDOQPEdLhBb/UWKe4WcKkDeMV1ngEYpBKCy6V6Ev4wNAxBmygogANrvVMep8c85LcCDAsbzpIUUzB5PG2ae1FRI6wIjya7dA1aYRKRzDc49iU+gIdbtwdJ+gr2rHAlGRSaJrzA+SNAe8C/5L826BKfCoK97faRS187gr+Luy863MYk3v5E5rQpVSTrWUSSmaLlG9WivmtMeSneima6JtwRsCw2yf2oye6QzuM75vuJB/KRrEkthMHi8Mhu/oTIIdAhHzfEA1LGWderHjjW7ifVJypXtxxHG3+e1Z6WAgHpDOm0="
         self.md5_result = "1d63ee856d8a64d75a368f7cf7fa162b"
 
-        self.cmb = CmbYjfPay(depart='A05', des_key=self.DES_key)
+        self.DES_decrypt_string = "EMyRCBKcYqaxyE8rAFkAM0iV7bCswmNabFkKGPfVGsnm3mC57jK90uJJq1RNIKJUJXKQeQRG0bhoWDk5kn+Iu+qqc5gjtpTQRhvJ1v7ft3Ypk+cpeGNDtzklbd2SPudt6HkmRvzerqJnpYCAekM6bQ=="
+        self.DES_decrypt_result = {
+            u'detail': [u'909e9c359d7cd80ea55c2dafe47f8b99~^2~^',
+                        u'd39fc95ef99b2b43130f3a71299050c6~^1~^'],
+            u'status': u'1'
+        }
+
+        self.cmb = CmbYjfPay(depart='A05', des_encrypt_key=self.DES_key, des_decrypt_key=self.DES_key)
 
 
     def tearDown(self):
@@ -34,6 +41,10 @@ class CmbYjfPayTestCase(unittest.TestCase):
         ciphertext = self.cmb.des_encode_data(self.plan_test)
         md5 = self.cmb.md5_32bit_lower_case(ciphertext)
         self.assertEqual(md5, self.md5_result)
+
+    def test_DES_decrypt(self):
+        decode_obj = self.cmb.des_decode_date(self.DES_decrypt_string)
+        self.assertEqual(self.DES_decrypt_result, decode_obj)
 
 
 if __name__ == '__main__':

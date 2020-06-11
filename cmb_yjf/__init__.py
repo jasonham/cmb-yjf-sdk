@@ -2,16 +2,14 @@
 # coding: utf-8
 
 """
-    __init__.py
-    ~~~~~~~~~~
-"""
-"""
     招商银行云缴费
 """
 import json
 import pyDes
 import base64
-from datetime import datetime
+from zeep import Client
+
+from datetime import date
 from functools import partial
 
 import hashlib
@@ -90,9 +88,9 @@ class CmbYjfBasePay:
         self._des_decrypt_key = None
 
         if debug:
-            self._gateway = "http://yjf.cmbuat.com:8996/api/gateway/jfy"
+            self._gateway = "http://www.chinwooaie.com:2300/cmbyjf/webservice/cmbyjf?wsdl"
         else:
-            self._gateway = "https://yjf.cmbchina.com/api/gateway/jfy"
+            self._gateway = "http://www.chinwooaie.com:2300/cmbyjf/webservice/cmbyjf?wsdl"
 
         # load key file immediately
         self._load_key()
@@ -103,7 +101,7 @@ class CmbYjfBasePay:
         # self._app_private_key = RSA.importKey(content)
         #
         # # load public key
-        # content = self._alipay_public_key_string
+        # content = self._cmbpay_public_key_string
         # self._cmb_public_key = RSA.importKey(content)
 
         # load Des key
@@ -166,7 +164,7 @@ class CmbYjfBasePay:
     #
     # def _verify(self, raw_content, signature):
     #     # 开始计算签名  验签
-    #     key = self.alipay_public_key
+    #     key = self.cmbpay_public_key
     #     signer = PKCS1_v1_5.new(key)
     #     digest = SHA256.new()
     #     digest.update(raw_content.encode())
@@ -264,9 +262,30 @@ class CmbYjfBasePay:
     #     message = "&".join(u"{}={}".format(k, v) for k, v in unsigned_items)
     #     return self._verify(message, signature)
 
+    def _format_deatil(self, data_list):
+        result = list()
+        split = '~^'
+        for data in data_list:
+            string = ''
+            for d in data:
+                string += str(d) + split
+            result.append(string)
+        return result
+
+    def _post_data(self, method, data):
+        client = Client(self._gateway)
+        deal = {
+            "model": method,
+            "param": json.dumps(data)
+        }
+        print(deal)
+        result = client.service.doDeal(**deal)
+        return result
+
+
     def api(self, api_name, **kwargs):
         """
-        cmbpay.api("cmbpay.trade.page.pay", **kwargs) ==> cmbpay.api_alipay_trade_page_pay(**kwargs)
+        cmbpay.api("cmbpay.trade.page.pay", **kwargs) ==> cmbpay.api_cmbpay_trade_page_pay(**kwargs)
         """
         api_name = api_name.replace(".", "_")
         key = "api_" + api_name
@@ -274,7 +293,48 @@ class CmbYjfBasePay:
             return getattr(self, key)
         raise AttributeError("Unknown attribute" + api_name)
 
-    def api_alipay_trade_wap_pay(
+    def api_cmbpay_import(self, detail, begin_date, end_date, fee_title=None, fee_act_id=None, **kwargs):
+        if not isinstance(begin_date, date) and not isinstance(end_date, date):
+            raise CMBYJFException(None, "begin_date 与 end_date的类型需要为 datetime.date 形式")
+        if not isinstance(detail, list):
+            raise CMBYJFException(None, "detail的类型需要为 list 形式")
+
+        begin_date = begin_date.strftime("%Y%m%d")
+        end_date = end_date.strftime("%Y%m%d")
+
+        biz_content = {
+            "depart": self.depart,
+            "detail": self._format_deatil(detail),
+            "begin_date": begin_date,
+            "end_date": end_date
+        }
+
+        if not fee_act_id and not fee_title:
+            raise CMBYJFException(None, 'fee_act_id 和 fee_title 不能同时为空')
+        if fee_act_id:
+            biz_content.update({
+                "fee_act_id": fee_act_id
+            })
+        else:
+            biz_content.update({
+                "fee_title": fee_title
+            })
+
+        biz_content.update({
+            "sum_cnt": len(detail),
+        })
+
+        sum_amt = 0.0
+        for d in detail:
+            sum_amt += float(d[7])
+        biz_content.update({
+            "sum_amt": sum_amt,
+        })
+        biz_content.update(kwargs)
+        data = self.build_body(biz_content)
+        return self._post_data('import', data)
+
+    def api_cmbpay_trade_wap_pay(
         self, subject, out_trade_no, total_amount,
         return_url=None, notify_url=None, **kwargs
     ):
@@ -293,7 +353,7 @@ class CmbYjfBasePay:
         )
         return self.sign_data(data)
 
-    def api_alipay_trade_app_pay(
+    def api_cmbpay_trade_app_pay(
         self, subject, out_trade_no, total_amount, notify_url=None, **kwargs
     ):
         biz_content = {
@@ -306,7 +366,7 @@ class CmbYjfBasePay:
         data = self.build_body("cmbpay.trade.app.pay", biz_content, notify_url=notify_url)
         return self.sign_data(data)
 
-    def api_alipay_trade_page_pay(self, subject, out_trade_no, total_amount,
+    def api_cmbpay_trade_page_pay(self, subject, out_trade_no, total_amount,
                                   return_url=None, notify_url=None, **kwargs):
         biz_content = {
             "subject": subject,
@@ -324,10 +384,10 @@ class CmbYjfBasePay:
         )
         return self.sign_data(data)
 
-    def api_alipay_trade_query(self, out_trade_no=None, trade_no=None):
+    def api_cmbpay_trade_query(self, out_trade_no=None, trade_no=None):
         """
         response = {
-          "alipay_trade_query_response": {
+          "cmbpay_trade_query_response": {
             "trade_no": "2017032121001004070200176844",
             "code": "10000",
             "invoice_amount": "20.00",
@@ -335,7 +395,7 @@ class CmbYjfBasePay:
             "fund_bill_list": [
               {
                 "amount": "20.00",
-                "fund_channel": "ALIPAYACCOUNT"
+                "fund_channel": "cmbpayACCOUNT"
               }
             ],
             "buyer_logon_id": "csq***@sandbox.com",
@@ -361,15 +421,15 @@ class CmbYjfBasePay:
         if trade_no:
             biz_content["trade_no"] = trade_no
         data = self.build_body("cmbpay.trade.query", biz_content)
-        response_type = "alipay_trade_query_response"
+        response_type = "cmbpay_trade_query_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_pay(
+    def api_cmbpay_trade_pay(
         self, out_trade_no, scene, auth_code, subject, notify_url=None, **kwargs
     ):
         """
         eg:
-            self.api_alipay_trade_pay(
+            self.api_cmbpay_trade_pay(
                 out_trade_no,
                 "bar_code/wave_code",
                 auth_code,
@@ -378,7 +438,7 @@ class CmbYjfBasePay:
                 discountable_amount=10
             )
         failed response = {
-            "alipay_trade_pay_response": {
+            "cmbpay_trade_pay_response": {
                 "code": "40004",
                 "msg": "Business Failed",
                 "sub_code": "ACQ.INVALID_PARAMETER",
@@ -392,7 +452,7 @@ class CmbYjfBasePay:
         }
         succeeded response =
             {
-              "alipay_trade_pay_response": {
+              "cmbpay_trade_pay_response": {
                 "trade_no": "2017032121001004070200176846",
                 "code": "10000",
                 "invoice_amount": "20.00",
@@ -400,7 +460,7 @@ class CmbYjfBasePay:
                 "fund_bill_list": [
                   {
                     "amount": "20.00",
-                    "fund_channel": "ALIPAYACCOUNT"
+                    "fund_channel": "cmbpayACCOUNT"
                   }
                 ],
                 "buyer_logon_id": "csq***@sandbox.com",
@@ -426,10 +486,10 @@ class CmbYjfBasePay:
         }
         biz_content.update(**kwargs)
         data = self.build_body("cmbpay.trade.pay", biz_content, notify_url=notify_url)
-        response_type = "alipay_trade_pay_response"
+        response_type = "cmbpay_trade_pay_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_refund(self, refund_amount, out_trade_no=None, trade_no=None, **kwargs):
+    def api_cmbpay_trade_refund(self, refund_amount, out_trade_no=None, trade_no=None, **kwargs):
         biz_content = {
             "refund_amount": refund_amount
         }
@@ -440,13 +500,13 @@ class CmbYjfBasePay:
             biz_content["trade_no"] = trade_no
 
         data = self.build_body("cmbpay.trade.refund", biz_content)
-        response_type = "alipay_trade_refund_response"
+        response_type = "cmbpay_trade_refund_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_cancel(self, out_trade_no=None, trade_no=None):
+    def api_cmbpay_trade_cancel(self, out_trade_no=None, trade_no=None):
         """
         response = {
-        "alipay_trade_cancel_response": {
+        "cmbpay_trade_cancel_response": {
             "msg": "Success",
             "out_trade_no": "out_trade_no15",
             "code": "10000",
@@ -465,13 +525,13 @@ class CmbYjfBasePay:
             biz_content["trade_no"] = trade_no
 
         data = self.build_body("cmbpay.trade.cancel", biz_content)
-        response_type = "alipay_trade_cancel_response"
+        response_type = "cmbpay_trade_cancel_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_close(self, out_trade_no=None, trade_no=None, operator_id=None):
+    def api_cmbpay_trade_close(self, out_trade_no=None, trade_no=None, operator_id=None):
         """
         response = {
-            "alipay_trade_close_response": {
+            "cmbpay_trade_close_response": {
                 "code": "10000",
                 "msg": "Success",
                 "trade_no": "2013112111001004500000675971",
@@ -492,13 +552,13 @@ class CmbYjfBasePay:
             biz_content["operator_id"] = operator_id
 
         data = self.build_body("cmbpay.trade.close", biz_content)
-        response_type = "alipay_trade_close_response"
+        response_type = "cmbpay_trade_close_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_precreate(self, subject, out_trade_no, total_amount, notify_url=None, **kwargs):
+    def api_cmbpay_trade_precreate(self, subject, out_trade_no, total_amount, notify_url=None, **kwargs):
         """
         success response  = {
-          "alipay_trade_precreate_response": {
+          "cmbpay_trade_precreate_response": {
             "msg": "Success",
             "out_trade_no": "out_trade_no17",
             "code": "10000",
@@ -507,7 +567,7 @@ class CmbYjfBasePay:
           "sign": ""
         }
         failed response = {
-          "alipay_trade_precreate_response": {
+          "cmbpay_trade_precreate_response": {
             "msg": "Business Failed",
             "sub_code": "ACQ.TOTAL_FEE_EXCEED",
             "code": "40004",
@@ -523,10 +583,10 @@ class CmbYjfBasePay:
         }
         biz_content.update(**kwargs)
         data = self.build_body("cmbpay.trade.precreate", biz_content, notify_url=notify_url)
-        response_type = "alipay_trade_precreate_response"
+        response_type = "cmbpay_trade_precreate_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_fastpay_refund_query(
+    def api_cmbpay_trade_fastpay_refund_query(
         self, out_request_no, trade_no=None, out_trade_no=None
     ):
         assert (out_trade_no is not None) or (trade_no is not None),\
@@ -539,13 +599,13 @@ class CmbYjfBasePay:
             biz_content["out_trade_no"] = out_trade_no
 
         data = self.build_body("cmbpay.trade.fastpay.refund.query", biz_content)
-        response_type = "alipay_trade_fastpay_refund_query_response"
+        response_type = "cmbpay_trade_fastpay_refund_query_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_fund_trans_toaccount_transfer(
+    def api_cmbpay_fund_trans_toaccount_transfer(
             self, out_biz_no, payee_type, payee_account, amount, **kwargs
     ):
-        assert payee_type in ("ALIPAY_USERID", "ALIPAY_LOGONID"), "unknown payee type"
+        assert payee_type in ("cmbpay_USERID", "cmbpay_LOGONID"), "unknown payee type"
         biz_content = {
             "out_biz_no": out_biz_no,
             "payee_type": payee_type,
@@ -554,10 +614,10 @@ class CmbYjfBasePay:
         }
         biz_content.update(kwargs)
         data = self.build_body("cmbpay.fund.trans.toaccount.transfer", biz_content)
-        response_type = "alipay_fund_trans_toaccount_transfer_response"
+        response_type = "cmbpay_fund_trans_toaccount_transfer_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_fund_trans_order_query(self, out_biz_no=None, order_id=None):
+    def api_cmbpay_fund_trans_order_query(self, out_biz_no=None, order_id=None):
         if out_biz_no is None and order_id is None:
             raise Exception("Both out_biz_no and order_id are None!")
 
@@ -568,10 +628,10 @@ class CmbYjfBasePay:
             biz_content["order_id"] = order_id
 
         data = self.build_body("cmbpay.fund.trans.order.query", biz_content)
-        response_type = "alipay_fund_trans_order_query_response"
+        response_type = "cmbpay_fund_trans_order_query_response"
         return self.verified_sync_response(data, response_type)
 
-    def api_alipay_trade_order_settle(
+    def api_cmbpay_trade_order_settle(
         self,
         out_request_no,
         trade_no,
@@ -585,7 +645,7 @@ class CmbYjfBasePay:
         }
         biz_content.update(kwargs)
         data = self.build_body("cmbpay.trade.order.settle", biz_content)
-        response_type = "alipay_trade_order_settle_response"
+        response_type = "cmbpay_trade_order_settle_response"
         return self.verified_sync_response(data, response_type)
 
     def _verify_and_return_sync_response(self, raw_string, response_type):
@@ -595,7 +655,7 @@ class CmbYjfBasePay:
         use json.loads(plain_content) instead
         failed response is like this
         {
-          "alipay_trade_query_response": {
+          "cmbpay_trade_query_response": {
             "sub_code": "isv.invalid-app-id",
             "code": "40002",
             "sub_msg": "无效的AppID参数",

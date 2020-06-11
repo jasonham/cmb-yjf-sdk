@@ -52,9 +52,14 @@ class CmbYjfBasePay:
         return self._depart
 
     @property
-    def des_key(self):
-        """DES 加密 解密 用"""
-        return self._des_key
+    def des_encrypt_key(self):
+        """DES 加密 用"""
+        return self._des_encrypt_key
+
+    @property
+    def des_decrypt_key(self):
+        """DES 解密 用"""
+        return self._des_decrypt_key
 
     def __init__(
             self,
@@ -63,7 +68,8 @@ class CmbYjfBasePay:
             # app_private_key_string=None,
             # cmb_public_key_string=None,
             depart=None,
-            des_key=None,
+            des_encrypt_key=None,
+            des_decrypt_key=None,
             debug=False
     ):
         """
@@ -75,11 +81,13 @@ class CmbYjfBasePay:
         # self._app_private_key_string = app_private_key_string
         # self._cmb_public_key_string = cmb_public_key_string
         self._depart = str(depart)
-        self._des_key_string = des_key
+        self._des_encrypt_key_string = des_encrypt_key
+        self._des_decrypt_key_string = des_decrypt_key
 
         self._app_private_key = None
         self._cmb_public_key = None
-        self._des_key = None
+        self._des_encrypt_key = None
+        self._des_decrypt_key = None
 
         if debug:
             self._gateway = "http://yjf.cmbuat.com:8996/api/gateway/jfy"
@@ -99,19 +107,22 @@ class CmbYjfBasePay:
         # self._cmb_public_key = RSA.importKey(content)
 
         # load Des key
-        content = self._des_key_string
-        self._des_key = content
+        content = self._des_encrypt_key_string
+        self._des_encrypt_key = content
+
+        content = self._des_decrypt_key_string
+        self._des_decrypt_key = content
 
     def _des_encode(self, plaintext):
         """DES 加密"""
-        key = self.des_key
+        key = self.des_encrypt_key
         des = pyDes.des(key, pyDes.ECB, pad=None, padmode=pyDes.PAD_PKCS5)
         encrypt_str = des.encrypt(plaintext)
         return base64.b64encode(encrypt_str)
 
     def _des_decode(self, cipher_text):
         """DES 解密"""
-        key = self.des_key
+        key = self.des_decrypt_key
         des = pyDes.des(key, pyDes.ECB, pad=None, padmode=pyDes.PAD_PKCS5)
         decode_str = base64.b64decode(cipher_text)
         return des.decrypt(decode_str)
@@ -216,7 +227,6 @@ class CmbYjfBasePay:
         # raw_string = "&".join("{}={}".format(k, v) for k, v in ordered_items)
         # encode = self._des_encode(raw_string)
         raw_string = json.dumps(data, ensure_ascii=False)
-        print(raw_string)
         encode = self._des_encode(raw_string)
         return encode
 

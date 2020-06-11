@@ -233,7 +233,18 @@ class CmbYjfBasePay:
     def des_decode_date(self, data):
         decode_string = self._des_decode(data)
         decode = json.loads(decode_string)
-        return decode
+        return self.unicode_convert(decode)
+
+    def unicode_convert(self, input_data):
+        if isinstance(input_data, dict):
+            return {self.unicode_convert(key): self.unicode_convert(value) for key, value in input_data.iteritems()}
+        elif isinstance(input_data, list):
+            return [self.unicode_convert(element) for element in input_data]
+        elif isinstance(input_data, unicode):
+            return input_data.encode('utf-8')
+        else:
+            return input_data
+
 
     # def sign_data(self, data):
     #     data.pop("sign", None)

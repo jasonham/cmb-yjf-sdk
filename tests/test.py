@@ -52,8 +52,8 @@ class CmbYjfPayTestCase(unittest.TestCase):
     def test_import(self):
         from cmb_yjf import CmbYjfPay
         detail = [
-            ['xx101', '张敏', '001', '三年级', '二班', '学杂费', '统一收费20.00元', '20.00', '张三', '15066666666'],
-            ['xx102', '李莉', '002', '三年级', '二班', '课间餐费', '统一收费30.00元/月', '30.00', '李四','15088888888']
+            ['xx103', '张敏', '001', '三年级', '二班', '学杂费', '统一收费20.00元', '20.00', '张三', '15066666666'],
+            ['xx104', '李莉', '002', '三年级', '二班', '课间餐费', '统一收费30.00元/月', '30.00', '李四','15088888888']
         ]
         from datetime import date
         begin_date = date(2020, 05, 22)
@@ -73,18 +73,19 @@ class CmbYjfPayTestCase(unittest.TestCase):
 
     def test_query_one(self):
         fee_act_id = '18'
-        fee_id = '79de6d935c6321a03e13ad0b06fe90c2'
+        fee_id = '3475eff0be6dd968e966d1a5ac8cb7d3'
         query_one = self.cmb.api('cmbpay.query')
         result = query_one(fee_act_id=fee_act_id, fee_id=fee_id)
         print(result)
 
     def test_delete(self):
         delete_list = [
-            '79de6d935c6321a03e13ad0b06fe90c2',
-            '2c42b92c752cdbb683fe8afafc24cf63'
+            '06a5c7b9903616994ad4a43482aff3cf',
+            'bede867e42c7c8afca28795464118509'
         ]
-
-
+        delete = self.cmb.api('cmbpay.delete')
+        result = delete(delete_list=delete_list)
+        print(result)
 
 
 if __name__ == '__main__':

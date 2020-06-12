@@ -280,11 +280,11 @@ class CmbYjfBasePay:
         }
         result = client.service.doDeal(**deal)
         result = json.loads(result)
-        if self.md5_32bit_lower_case(result.get('Data', '')) != result.get('Md5'):
-            raise CMBYJFException(None, '回传未通过校验')
         if result.get('IsError', True):
             raise CMBYJFException(None, result.get('ErrorMsg', '未知错误'))
         else:
+            if self.md5_32bit_lower_case(result.get('Data', '')) != result.get('Md5'):
+                raise CMBYJFException(None, '回传未通过校验:{}'.format(result))
             res = self.des_decode_date(result.get('Data'))
             detail = res.pop('detail')
             res.update({
@@ -361,6 +361,16 @@ class CmbYjfBasePay:
         data = self.build_body(biz_content)
         return self._post_data('query', data)
 
+    def api_cmbpay_delete(self, delete_list):
+        delete = list()
+        for d in delete_list:
+            delete.append('{}~^'.format(d))
+        biz_content = {
+            'detail': delete
+        }
+        data = self.build_body(biz_content)
+
+        return self._post_data('delete', data)
 
     def api_cmbpay_trade_wap_pay(
         self, subject, out_trade_no, total_amount,
@@ -717,7 +727,6 @@ class CmbYjfBasePay:
 
     def _get_string_to_be_signed(self, raw_string, response_type):
         """
-        https://docs.open.cmbpay.com/200/106120
         从同步返回的接口里面找到待签名的字符串
         """
         balance = 0

@@ -62,7 +62,8 @@ class CmbYjfPayTestCase(unittest.TestCase):
         DES_key = '1234qwer'
         cmb = CmbYjfPay(depart='A05', des_encrypt_key=DES_key, des_decrypt_key=DES_key)
         import_data = cmb.api('cmbpay.import')
-        import_data(detail=detail, begin_date=begin_date, end_date=end_date, fee_title=fee_title)
+        result = import_data(detail=detail, begin_date=begin_date, end_date=end_date, fee_title=fee_title)
+        print(result)
 
 
 if __name__ == '__main__':

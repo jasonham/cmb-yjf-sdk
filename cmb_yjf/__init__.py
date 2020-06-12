@@ -278,8 +278,14 @@ class CmbYjfBasePay:
             "model": method,
             "param": json.dumps(data)
         }
-        print(deal)
         result = client.service.doDeal(**deal)
+        result = json.loads(result)
+        if self.md5_32bit_lower_case(result.get('Data', '')) != result.get('Md5'):
+            raise CMBYJFException(None, '回传未通过校验')
+        if result.get('IsError', True):
+            raise CMBYJFException(None, result.get('ErrorMsg', '未知错误'))
+        else:
+            return self.des_decode_date(result.get('Data'))
         return result
 
 

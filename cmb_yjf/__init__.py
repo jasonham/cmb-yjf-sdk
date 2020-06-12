@@ -285,8 +285,20 @@ class CmbYjfBasePay:
         if result.get('IsError', True):
             raise CMBYJFException(None, result.get('ErrorMsg', '未知错误'))
         else:
-            return self.des_decode_date(result.get('Data'))
-        return result
+            res = self.des_decode_date(result.get('Data'))
+            detail = res.pop('detail')
+            res.update({
+                'detail': self._decode_detail(detail)
+            })
+
+        return res
+
+    def _decode_detail(self, detail):
+        res = list()
+        for data in detail:
+            res.append(data.split('~^'))
+        return res
+
 
 
     def api(self, api_name, **kwargs):
@@ -339,6 +351,16 @@ class CmbYjfBasePay:
         biz_content.update(kwargs)
         data = self.build_body(biz_content)
         return self._post_data('import', data)
+
+    def api_cmbpay_query(self, fee_act_id, **kwargs):
+        biz_content = {
+            "fee_act_id": fee_act_id,
+        }
+        biz_content.update(kwargs)
+
+        data = self.build_body(biz_content)
+        return self._post_data('query', data)
+
 
     def api_cmbpay_trade_wap_pay(
         self, subject, out_trade_no, total_amount,

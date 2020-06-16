@@ -87,6 +87,19 @@ class CmbYjfPayTestCase(unittest.TestCase):
         result = delete(delete_list=delete_list)
         print(result)
 
+    def test_query_bank_all(self):
+        fee_act_id = '10'
+        query_one = self.cmb.api('cmbpay.query_bank')
+        result = query_one(fee_act_id=fee_act_id)
+        print(result)
+
+    def test_query_bank_one(self):
+        fee_act_id = '10'
+        fee_id = '68001f2b1677903fa54f51f93068dbe6'
+        query_one = self.cmb.api('cmbpay.query_bank')
+        result = query_one(fee_act_id=fee_act_id, fee_id=fee_id)
+        print(result)
+
 
 if __name__ == '__main__':
     # unittest.main(warnings='ignore')

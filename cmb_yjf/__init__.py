@@ -281,7 +281,10 @@ class CmbYjfBasePay:
         result = client.service.doDeal(**deal)
         result = json.loads(result)
         if result.get('IsError', True):
-            raise CMBYJFException(None, result.get('ErrorMsg', '未知错误'))
+            msg = result.get('ErrorMsg', '未知错误')
+            print msg
+
+            raise CMBYJFException(None, msg)
         else:
             if self.md5_32bit_lower_case(result.get('Data', '')) != result.get('Md5'):
                 raise CMBYJFException(None, '回传未通过校验:{}'.format(result))
@@ -371,6 +374,15 @@ class CmbYjfBasePay:
         data = self.build_body(biz_content)
 
         return self._post_data('delete', data)
+
+    def api_cmbpay_query_bank(self, fee_act_id, **kwargs):
+        biz_content = {
+            "fee_act_id": fee_act_id,
+        }
+        biz_content.update(kwargs)
+
+        data = self.build_body(biz_content)
+        return self._post_data('querybank', data)
 
     def api_cmbpay_trade_wap_pay(
         self, subject, out_trade_no, total_amount,

@@ -90,7 +90,9 @@ class CmbYjfPayTestCase(unittest.TestCase):
     def test_query_bank_all(self):
         fee_act_id = '10'
         query_one = self.cmb.api('cmbpay.query_bank')
-        result = query_one(fee_act_id=fee_act_id)
+        pag_siz = 100
+        pag_nbr = 1
+        result = query_one(fee_act_id=fee_act_id, pag_siz=pag_siz, pag_nbr=pag_nbr)
         print(result)
 
     def test_query_bank_one(self):
